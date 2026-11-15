@@ -33,7 +33,6 @@
 
     ShowtimeStatistics8[] listShowtimeStatistics = new ShowtimeStatistics8[0];
     String outNotice = null;
-    boolean noticeIsError = false;
 
     if (idMovie > 0) {
         try {
@@ -41,7 +40,6 @@
                     .getShowtimeStatistics8(idMovie, startDate, endDate);
         } catch (RuntimeException ex) {
             outNotice = "Không thể tải thống kê suất chiếu. Vui lòng kiểm tra kết nối MySQL.";
-            noticeIsError = true;
             application.log("MovieShowtimeStatisticsScreen8 could not load data", ex);
         }
     }
@@ -59,68 +57,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Thống kê suất chiếu của phim</title>
-    <link rel="stylesheet" href="<%= ctx %>/css/style.css">
 </head>
 <body>
-<header class="topbar">
-    <a class="brand" href="<%= ctx %>/index.jsp">Cinema Management System</a>
-    <span class="meta">MovieShowtimeStatisticsScreen8.jsp</span>
+<header>
+    <a href="<%= ctx %>/index.jsp">Cinema Management System</a>
+    <span>MovieShowtimeStatisticsScreen8.jsp</span>
 </header>
 
-<main class="container">
-    <section class="panel">
-        <h1 class="panel-title">Thống kê suất chiếu của phim</h1>
-        <div class="panel-body">
-            <p>Phim: <strong><%= Html8.escape(movieName) %></strong></p>
+<hr>
 
-            <% if (outNotice != null) { %>
-            <div class="alert <%= noticeIsError ? "error" : "" %>"><%= Html8.escape(outNotice) %></div>
+<main>
+    <section>
+        <h1>Thống kê suất chiếu của phim</h1>
+        <p>Phim: <strong><%= Html8.escape(movieName) %></strong></p>
+
+        <% if (outNotice != null) { %>
+        <div><%= Html8.escape(outNotice) %></div>
+        <% } %>
+
+        <% if (listShowtimeStatistics.length > 0) { %>
+        <table id="outShowtimeTable">
+            <thead>
+            <tr>
+                <th>TT</th>
+                <th>Ngày</th>
+                <th>Giờ</th>
+                <th>Phòng</th>
+                <th>Vé bán</th>
+                <th>Doanh thu</th>
+            </tr>
+            </thead>
+            <tbody>
+            <%
+                for (int i = 0; i < listShowtimeStatistics.length; i++) {
+                    ShowtimeStatistics8 selectedShowtime = listShowtimeStatistics[i];
+                    String rowDateIso = DateUtil8.toIso(selectedShowtime.getDate());
+                    String rowTime = DateUtil8.formatTime(selectedShowtime.getStartTime());
+                    String rowTimeEnc = URLEncoder.encode(rowTime, "UTF-8");
+                    int roomId = selectedShowtime.getRoom() == null ? 0 : selectedShowtime.getRoom().getId();
+            %>
+            <tr>
+                <td><%= i + 1 %></td>
+                <td><%= DateUtil8.formatDmy(selectedShowtime.getDate()) %></td>
+                <td>
+                    <a href="<%= ctx %>/view/managementstaff/ShowtimeTicketSalesScreen8.jsp?idShowtime=<%= selectedShowtime.getId() %>&amp;showtimeDate=<%= rowDateIso %>&amp;showtimeTime=<%= rowTimeEnc %>&amp;roomId=<%= roomId %>&amp;idMovie=<%= idMovie %>&amp;movieName=<%= movieNameEnc %>&amp;startDate=<%= startIso %>&amp;endDate=<%= endIso %>">
+                        <%= Html8.escape(rowTime) %>
+                    </a>
+                </td>
+                <td>P.<%= roomId %></td>
+                <td><%= selectedShowtime.getTicketsSold() %></td>
+                <td><%= Money8.format(selectedShowtime.getRevenue()) %></td>
+            </tr>
             <% } %>
+            </tbody>
+        </table>
+        <% } %>
 
-            <% if (listShowtimeStatistics.length > 0) { %>
-            <table class="table" id="outShowtimeTable">
-                <thead>
-                <tr>
-                    <th style="width: 60px;">TT</th>
-                    <th style="width: 130px;">Ngày</th>
-                    <th style="width: 100px;">Giờ</th>
-                    <th style="width: 100px;">Phòng</th>
-                    <th style="width: 130px;">Vé bán</th>
-                    <th style="width: 170px;">Doanh thu</th>
-                </tr>
-                </thead>
-                <tbody>
-                <%
-                    for (int i = 0; i < listShowtimeStatistics.length; i++) {
-                        ShowtimeStatistics8 selectedShowtime = listShowtimeStatistics[i];
-                        String rowDateIso = DateUtil8.toIso(selectedShowtime.getDate());
-                        String rowTime = DateUtil8.formatTime(selectedShowtime.getStartTime());
-                        String rowTimeEnc = URLEncoder.encode(rowTime, "UTF-8");
-                        int roomId = selectedShowtime.getRoom() == null ? 0 : selectedShowtime.getRoom().getId();
-                %>
-                <tr>
-                    <td><%= i + 1 %></td>
-                    <td><%= DateUtil8.formatDmy(selectedShowtime.getDate()) %></td>
-                    <td>
-                        <a href="<%= ctx %>/view/managementstaff/ShowtimeTicketSalesScreen8.jsp?idShowtime=<%= selectedShowtime.getId() %>&amp;showtimeDate=<%= rowDateIso %>&amp;showtimeTime=<%= rowTimeEnc %>&amp;roomId=<%= roomId %>&amp;idMovie=<%= idMovie %>&amp;movieName=<%= movieNameEnc %>&amp;startDate=<%= startIso %>&amp;endDate=<%= endIso %>">
-                            <%= Html8.escape(rowTime) %>
-                        </a>
-                    </td>
-                    <td>P.<%= roomId %></td>
-                    <td class="num"><%= selectedShowtime.getTicketsSold() %></td>
-                    <td class="num"><%= Money8.format(selectedShowtime.getRevenue()) %></td>
-                </tr>
-                <% } %>
-                </tbody>
-            </table>
-            <% } %>
-
-            <form method="post" action="<%= ctx %>/view/managementstaff/MovieStatisticsScreen8.jsp" class="actions">
-                <input type="hidden" name="inStartDate" value="<%= startIso %>">
-                <input type="hidden" name="inEndDate" value="<%= endIso %>">
-                <button class="btn" type="submit" name="subBack" value="1">Quay lại</button>
-            </form>
-        </div>
+        <form method="post" action="<%= ctx %>/view/managementstaff/MovieStatisticsScreen8.jsp">
+            <input type="hidden" name="inStartDate" value="<%= startIso %>">
+            <input type="hidden" name="inEndDate" value="<%= endIso %>">
+            <button type="submit" name="subBack" value="1">Quay lại</button>
+        </form>
     </section>
 </main>
 </body>

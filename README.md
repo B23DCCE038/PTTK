@@ -24,7 +24,6 @@ below.
 - JDK 17 or newer
 - Maven 3.9+
 - Docker Desktop, for the MySQL 8.0 container
-- Internet access on the first run (Maven downloads the JDBC driver and Tomcat)
 
 The project was built and tested with JDK 25, Maven 3.9.11, Docker 29.7 and
 Tomcat 10.1.34. Tomcat 10.1 is a Jakarta EE 10 container; the WAR also deploys
@@ -32,14 +31,11 @@ to a separately installed Tomcat 10.1+.
 
 ## Quick start
 
-```powershell
-cd "C:\Users\Lenovo\Downloads\School Docs\PTTK\code"
-
+```
 # 1. MySQL 8.0 + schema + seed (first start runs database/*.sql)
 docker compose up -d
 
-# 2. Build and test
-mvn test
+# 2. Build
 mvn package
 
 # 3. Run Tomcat 10.1 with the WAR at /cinema
@@ -47,6 +43,9 @@ mvn cargo:run
 ```
 
 Open <http://localhost:8080/cinema/>.
+
+The same three steps are wrapped by `start-db.bat`, `build.bat` and
+`start.bat`.
 
 The first `mvn cargo:run` downloads Tomcat 10.1.34 into `target/cargo/`.
 If port 8080 is busy:
@@ -67,20 +66,6 @@ To use an existing Tomcat instead, copy `target/cinema.war` into its
 - root password `root`
 - `utf8mb4` / `utf8mb4_unicode_ci`
 - automatic execution of `database/01-schema.sql` and `database/02-seed.sql`
-
-The defaults in `src/main/resources/db.properties` match this container.
-If you use a local MySQL instead, create the `cinema` database/user or change
-`db.properties`:
-
-```properties
-db.url=jdbc:mysql://localhost:3306/cinema?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh&useSSL=false&allowPublicKeyRetrieval=true
-db.user=cinema
-db.password=cinema
-```
-
-The URL, user and password can also be overridden with the
-`CINEMA_DB_URL`, `CINEMA_DB_USER` and `CINEMA_DB_PASSWORD` environment
-variables.
 
 To reset the database and re-run the seed scripts:
 
@@ -134,53 +119,6 @@ bookings are excluded from every statistics screen. `Dune` is scheduled in the
 period but has no ticket, so it appears with 0 tickets and 0 revenue rather
 than disappearing.
 
-### SQL checks
-
-```powershell
-Get-Content database\verify.sql -Raw | docker exec -i cinema-mysql mysql -ucinema -pcinema cinema
-```
-
-Expected results are documented in `database/verify.sql` and in section 3 of
-`02-seed.sql`.
-
-## Project structure
-
-```text
-code/
-├─ pom.xml
-├─ docker-compose.yml
-├─ database/
-│  ├─ 01-schema.sql          # 14 tables
-│  ├─ 02-seed.sql            # demo data and expected statistics
-│  └─ verify.sql             # SQL sanity checks
-├─ src/main/java/
-│  ├─ model/                 # 18 entity classes
-│  ├─ dao/                   # DAO8, CustomerDAO8, MovieStatisticsDAO8,
-│  │                         # ShowtimeStatisticsDAO8, TicketDAO8
-│  └─ util/                  # DateUtil8, Money8, Html8, NameParser8
-├─ src/main/resources/
-│  └─ db.properties
-├─ src/main/webapp/
-│  ├─ index.jsp              # launcher (Guest / Management demo)
-│  ├─ error.jsp
-│  ├─ css/style.css
-│  ├─ WEB-INF/web.xml
-│  ├─ WEB-INF/jspf/demoManagementStaff8.jspf
-│  └─ view/
-│     ├─ guest/
-│     │  ├─ GuestMainScreen8.jsp
-│     │  └─ MemberRegistrationScreen8.jsp
-│     ├─ customer/
-│     │  └─ CustomerMainScreen8.jsp
-│     └─ managementstaff/
-│        ├─ ManagementStaffMainScreen8.jsp
-│        ├─ StatisticsTypeScreen8.jsp
-│        ├─ MovieStatisticsScreen8.jsp
-│        ├─ MovieShowtimeStatisticsScreen8.jsp
-│        └─ ShowtimeTicketSalesScreen8.jsp
-└─ src/test/java/            # helper and model unit tests
-```
-
 ## Class / database mapping
 
 | Design | Source |
@@ -219,48 +157,30 @@ The boundary classes keep the designed component names in the HTML:
 
 ## Scope and design notes
 
-- **No login.** The selected build scope is the two detailed modules only.
-  `Login 8`, `Seller` screens and the customer search/booking functions are
-  outside the detailed design. `index.jsp` is a launcher, not a boundary class
-  of either module.
-- **Demo staff.** `ManagementStaffMainScreen8.jsp` includes
-  `WEB-INF/jspf/demoManagementStaff8.jspf`, which creates the same seeded
-  Management-staff object that `database/02-seed.sql` stores. No authentication
-  or session guard is implemented.
-- **Customer home.** `CustomerMainScreen8.jsp` is the destination after a
-  successful registration, as in scenario v3.0 step 21. The report says this
-  screen belongs to the customer module and is not detailed; its three
-  functions are therefore display-only placeholders.
-- **One shared connection.** `DAO8` follows the report’s design: one JDBC
-  `Connection` shared by all DAOs. The connection is guarded by a static lock
-  because a single `Connection` is not thread-safe. A production application
-  would use a connection pool instead.
 - **Plain passwords.** The report stores `password` as a plain `String`;
   this build does the same. A real application must hash passwords.
 - **Support code.** `index.jsp`, `error.jsp` and `util/` are infrastructure
   classes, not part of the two module class diagrams. They are documented here
   so the class-diagram comparison remains clear.
-- **MySQL types.** The schema uses MySQL 8 `INT` / `FLOAT` without the
-  deprecated display widths (`INT(10)`, `FLOAT(10)`) shown in the conceptual
-  diagram; the columns and constraints are the same.
-- **Tomcat 10.1.** The WAR uses the Jakarta EE 10 namespace. If the course
-  environment requires Tomcat 9 (`javax.servlet`), the `web.xml`/servlet
-  namespace must be adapted.
 
-## Build and test commands
+## Build commands
 
 ```powershell
-mvn test                 # helper and model tests
 mvn package              # target/cinema.war
 mvn cargo:run            # Tomcat 10.1 on port 8080
 mvn cargo:stop           # stop the Cargo Tomcat
 ```
 
-On Windows, run `mvn cargo:stop` before `mvn clean`: the running Tomcat is
-inside `target/cargo`, so `clean` cannot delete locked files.
+Windows helper scripts:
 
-If Tomcat fails to start on a very new JDK, run Maven with JDK 21 installed on
-the machine:
+| Script | Does |
+| --- | --- |
+| `build.bat` | `mvn package` → `target/cinema.war` |
+| `start-db.bat` | `docker compose up -d`, waits for the `cinema-mysql` healthcheck |
+| `start.bat` | launches `mvn cargo:run` in a separate **Cinema Tomcat** window, waits for `http://localhost:8080/cinema/`, opens it |
+
+On Windows, run `mvn cargo:stop` before `mvn clean`: the running
+Tomcat is inside `target/cargo`, so `clean` cannot delete locked files.
 
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot"
@@ -269,17 +189,9 @@ mvn cargo:run
 
 ## Troubleshooting
 
-- **`Cannot connect to MySQL`**: check `docker compose ps`; wait for the
-  container to become healthy; verify `db.properties` and the port mapping.
-- **Schema/seed did not run**: MySQL only runs `docker-entrypoint-initdb.d`
-  scripts when the data volume is empty. Run `docker compose down -v` then
+- **Schema/seed did not run**: MySQL only runs `docker-entrypoint-initdb.d` scripts when the data volume is empty. Run `docker compose down -v` then
   `docker compose up -d`.
-- **Port 3306 already in use**: stop the local MySQL service or change the
-  host port in `docker-compose.yml` and `db.properties`.
+- **Port 3306 already in use**: stop the local MySQL service or change the host port in `docker-compose.yml` and `db.properties`.
 - **Port 8080 already in use**: `mvn cargo:run -Dcargo.servlet.port=8081`.
-- **Vietnamese characters look wrong**: the WAR sets UTF-8 for requests,
-  responses and JSPs, and the schema uses `utf8mb4`. Check that the database
-  was created with `utf8mb4_unicode_ci`.
-- **Tomcat starts but a JSP reports an error**: check
-  `target/cargo/configurations/tomcat10x/logs/` and the Maven console. The
-  custom `error.jsp` also shows a short diagnostic message.
+- **A file you deleted still shows up in the WAR**: `mvn package` reuses `target/`. Run `mvn clean package` after removing, renaming or moving anything under `src/main/webapp`, otherwise the old file stays inside `cinema.war` and in the Cargo deployment.
+- **Tomcat starts but a JSP reports an error**: check `target/cargo/configurations/tomcat10x/logs/` and the Maven console. The custom `error.jsp` also shows a short diagnostic message.
