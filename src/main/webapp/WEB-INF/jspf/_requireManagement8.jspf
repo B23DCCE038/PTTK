@@ -1,0 +1,9 @@
+<%@ page import="model.ManagementStaff8" %>
+<%
+    Object member = session.getAttribute("member");
+    if (!(member instanceof ManagementStaff8)) {
+        response.sendRedirect(request.getContextPath() + "/view/member/LoginScreen8.jsp?err=timeout");
+        return;
+    }
+    ManagementStaff8 currentStaff = (ManagementStaff8) member;
+%>

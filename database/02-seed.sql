@@ -9,7 +9,6 @@
 -- The pending, cancelled and expired bookings below must not be counted.
 
 USE cinema;
-SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 INSERT INTO tblFullName (id, surname, middleName, givenName) VALUES
     (1, 'Trần', 'Thị', 'B'),

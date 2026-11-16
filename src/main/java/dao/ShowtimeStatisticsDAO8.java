@@ -2,7 +2,6 @@ package dao;
 
 import model.Movie8;
 import model.ScreeningRoom8;
-import model.Showtime8;
 import model.ShowtimeStatistics8;
 
 import java.sql.PreparedStatement;
@@ -43,8 +42,8 @@ public class ShowtimeStatisticsDAO8 extends DAO8 {
             List<ShowtimeStatistics8> result = new ArrayList<>();
             try (PreparedStatement ps = getCon().prepareStatement(sql)) {
                 ps.setInt(1, idMovie);
-                ps.setDate(2, startOrMin(startDate));
-                ps.setDate(3, endOrMax(endDate));
+                ps.setDate(2, toSqlDate(startDate));
+                ps.setDate(3, toSqlDate(endDate));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         Movie8 movie = new Movie8();
@@ -55,18 +54,17 @@ public class ShowtimeStatisticsDAO8 extends DAO8 {
                         room.setId(rs.getInt("roomId"));
                         room.setSeatCount(rs.getInt("seatCount"));
 
-                        Showtime8 showtime = new Showtime8();
+                        ShowtimeStatistics8 showtime = new ShowtimeStatistics8();
                         showtime.setId(rs.getInt("id"));
                         showtime.setDate(rs.getDate("showDate"));
                         showtime.setStartTime(rs.getTime("startTime"));
                         showtime.setEndTime(rs.getTime("endTime"));
                         showtime.setMovie(movie);
                         showtime.setRoom(room);
+                        showtime.setTicketsSold(rs.getInt("ticketsSold"));
+                        showtime.setRevenue(rs.getFloat("revenue"));
 
-                        result.add(new ShowtimeStatistics8(
-                                showtime,
-                                rs.getInt("ticketsSold"),
-                                rs.getFloat("revenue")));
+                        result.add(showtime);
                     }
                 }
             } catch (SQLException ex) {

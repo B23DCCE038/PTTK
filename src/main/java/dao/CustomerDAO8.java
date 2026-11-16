@@ -2,8 +2,6 @@ package dao;
 
 import model.Customer8;
 import model.FullName8;
-import model.Ticket8;
-import util.NameParser8;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -46,7 +44,7 @@ public class CustomerDAO8 extends DAO8 {
                 previousAutoCommit = conn.getAutoCommit();
                 conn.setAutoCommit(false);
 
-                FullName8 fullName8 = NameParser8.parse(fullName);
+                FullName8 fullName8 = FullName8.parse(fullName);
 
                 String sqlFullName = "INSERT INTO tblFullName (surname, middleName, givenName) VALUES (?, ?, ?)";
                 int fullNameId;
@@ -73,23 +71,19 @@ public class CustomerDAO8 extends DAO8 {
                 }
 
                 String sqlCustomer = "INSERT INTO tblCustomer (tblMemberid) VALUES (?)";
-                int customerId;
-                try (PreparedStatement ps = conn.prepareStatement(sqlCustomer, Statement.RETURN_GENERATED_KEYS)) {
+                try (PreparedStatement ps = conn.prepareStatement(sqlCustomer)) {
                     ps.setInt(1, memberId);
                     ps.executeUpdate();
-                    customerId = generatedId(ps);
                 }
 
                 conn.commit();
 
                 Customer8 customer = new Customer8();
-                customer.setId(customerId);
+                customer.setId(memberId);
                 customer.setUsername(username);
-                customer.setPassword(password);
                 customer.setPhone(phone);
                 customer.setRole("Customer");
                 customer.setFullName(fullName8);
-                customer.setTickets(new Ticket8[0]);
                 return customer;
             } catch (Exception ex) {
                 try {

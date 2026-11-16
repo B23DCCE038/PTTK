@@ -1,14 +1,12 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="model.Showtime8" %>
-<%@ page import="model.ScreeningRoom8" %>
-<%@ page import="model.Ticket8" %>
+<%@ page import="model.ScreeningRoom8, model.Ticket8, model.Showtime8" %>
 <%@ page import="dao.TicketDAO8" %>
-<%@ page import="util.DateUtil8" %>
-<%@ page import="util.Html8" %>
-<%@ page import="util.Money8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ include file="/WEB-INF/jspf/_requireManagement8.jspf" %>
+<%@ include file="/WEB-INF/jspf/common8.jspf" %>
 <%
-    String ctx = request.getContextPath();
-
     int idShowtime = 0;
     try {
         idShowtime = Integer.parseInt(request.getParameter("idShowtime"));
@@ -33,13 +31,13 @@
 
     Showtime8 showtime = new Showtime8();
     showtime.setId(idShowtime);
-    showtime.setDate(DateUtil8.parseIso(showtimeDate, null));
+    showtime.setDate(parseIso8(showtimeDate, null));
     if (!showtimeTime.isEmpty()) {
         try {
             String timeValue = showtimeTime.length() == 5 ? showtimeTime + ":00" : showtimeTime;
             showtime.setStartTime(java.sql.Time.valueOf(timeValue));
         } catch (IllegalArgumentException ignored) {
-            // the display still uses the raw query parameter
+            // malformed value: leave the field empty
         }
     }
     if (!roomId.isEmpty()) {
@@ -48,7 +46,7 @@
             room.setId(Integer.parseInt(roomId));
             showtime.setRoom(room);
         } catch (NumberFormatException ignored) {
-            // the display still uses the raw query parameter
+            // malformed value: leave the field empty
         }
     }
 
@@ -66,6 +64,14 @@
     if (outNotice == null && listTicketSales.length == 0) {
         outNotice = "Không có vé nào được bán cho suất chiếu này.";
     }
+
+    request.setAttribute("showtime", showtime);
+    request.setAttribute("idMovie", idMovie);
+    request.setAttribute("movieName", movieName);
+    request.setAttribute("startDate", startDate);
+    request.setAttribute("endDate", endDate);
+    request.setAttribute("listTicketSales", listTicketSales);
+    request.setAttribute("outNotice", outNotice);
 %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -76,7 +82,7 @@
 </head>
 <body>
 <header>
-    <a href="<%= ctx %>/index.jsp">Cinema Management System</a>
+    <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
     <span>ShowtimeTicketSalesScreen8.jsp</span>
 </header>
 
@@ -86,18 +92,18 @@
     <section>
         <h1>Thống kê bán vé của suất chiếu</h1>
         <p>
-            Suất chiếu: <strong><%= Html8.escape(showtimeTime) %></strong>,
-            phòng <strong><%= Html8.escape(roomId) %></strong>
-            <% if (!showtimeDate.isEmpty()) { %>
-            — ngày <strong><%= Html8.escape(DateUtil8.formatDmy(showtime.getDate())) %></strong>
-            <% } %>
+            Suất chiếu: <strong><fmt:formatDate value="${showtime.startTime}" pattern="HH:mm"/></strong>,
+            phòng <strong><c:out value="${showtime.room.id}"/></strong>
+            <c:if test="${not empty showtime.date}">
+            — ngày <strong><fmt:formatDate value="${showtime.date}" pattern="dd/MM/yyyy"/></strong>
+            </c:if>
         </p>
 
-        <% if (outNotice != null) { %>
-        <div><%= Html8.escape(outNotice) %></div>
-        <% } %>
+        <c:if test="${not empty outNotice}">
+        <div><c:out value="${outNotice}"/></div>
+        </c:if>
 
-        <% if (listTicketSales.length > 0) { %>
+        <c:if test="${not empty listTicketSales}">
         <table id="outTicketTable">
             <thead>
             <tr>
@@ -109,32 +115,24 @@
             </tr>
             </thead>
             <tbody>
-            <%
-                for (int i = 0; i < listTicketSales.length; i++) {
-                    Ticket8 selectedTicket = listTicketSales[i];
-                    String buyer = "";
-                    if (selectedTicket.getCustomer() != null
-                            && selectedTicket.getCustomer().getFullName() != null) {
-                        buyer = selectedTicket.getCustomer().getFullName().getFullName();
-                    }
-            %>
-            <tr>
-                <td><%= i + 1 %></td>
-                <td><%= selectedTicket.getId() %></td>
-                <td><%= Html8.escape(selectedTicket.getSeat()) %></td>
-                <td><%= Money8.format(selectedTicket.getPrice()) %></td>
-                <td><%= Html8.escape(buyer) %></td>
-            </tr>
-            <% } %>
+            <c:forEach items="${listTicketSales}" var="selectedTicket" varStatus="status">
+                <tr>
+                    <td>${status.count}</td>
+                    <td>${selectedTicket.id}</td>
+                    <td><c:out value="${selectedTicket.seat}"/></td>
+                    <td><fmt:formatNumber value="${selectedTicket.price}" pattern="#,##0"/></td>
+                    <td><c:out value="${selectedTicket.customer.fullName.fullName}"/></td>
+                </tr>
+            </c:forEach>
             </tbody>
         </table>
-        <% } %>
+        </c:if>
 
-        <form method="post" action="<%= ctx %>/view/managementstaff/MovieShowtimeStatisticsScreen8.jsp">
-            <input type="hidden" name="idMovie" value="<%= Html8.escape(idMovie) %>">
-            <input type="hidden" name="movieName" value="<%= Html8.escape(movieName) %>">
-            <input type="hidden" name="startDate" value="<%= Html8.escape(startDate) %>">
-            <input type="hidden" name="endDate" value="<%= Html8.escape(endDate) %>">
+        <form method="post" action="${pageContext.request.contextPath}/view/managementstaff/MovieShowtimeStatisticsScreen8.jsp">
+            <input type="hidden" name="idMovie" value="${fn:escapeXml(idMovie)}">
+            <input type="hidden" name="movieName" value="${fn:escapeXml(movieName)}">
+            <input type="hidden" name="startDate" value="${fn:escapeXml(startDate)}">
+            <input type="hidden" name="endDate" value="${fn:escapeXml(endDate)}">
             <button type="submit" name="subBack" value="1">Quay lại</button>
         </form>
     </section>

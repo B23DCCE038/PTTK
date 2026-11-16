@@ -1,18 +1,17 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="model.MovieStatistics8" %>
 <%@ page import="dao.MovieStatisticsDAO8" %>
-<%@ page import="util.DateUtil8" %>
-<%@ page import="util.Html8" %>
-<%@ page import="util.Money8" %>
 <%@ page import="java.util.Date" %>
-<%@ page import="java.net.URLEncoder" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ include file="/WEB-INF/jspf/_requireManagement8.jspf" %>
+<%@ include file="/WEB-INF/jspf/common8.jspf" %>
 <%
-    String ctx = request.getContextPath();
-
-    Date defaultStart = DateUtil8.parseIso("2026-01-01", new Date());
-    Date defaultEnd = DateUtil8.parseIso("2026-03-31", new Date());
-    Date inStartDate = DateUtil8.parseIso(request.getParameter("inStartDate"), defaultStart);
-    Date inEndDate = DateUtil8.parseIso(request.getParameter("inEndDate"), defaultEnd);
+    Date defaultStart = parseIso8("2026-01-01", new Date());
+    Date defaultEnd = parseIso8("2026-03-31", new Date());
+    Date inStartDate = parseIso8(request.getParameter("inStartDate"), defaultStart);
+    Date inEndDate = parseIso8(request.getParameter("inEndDate"), defaultEnd);
 
     MovieStatistics8[] listMovieStatistics = new MovieStatistics8[0];
     String outNotice = null;
@@ -27,8 +26,10 @@
         outNotice = "Không có dữ liệu trong kì.";
     }
 
-    String startIso = DateUtil8.toIso(inStartDate);
-    String endIso = DateUtil8.toIso(inEndDate);
+    request.setAttribute("inStartDate", inStartDate);
+    request.setAttribute("inEndDate", inEndDate);
+    request.setAttribute("listMovieStatistics", listMovieStatistics);
+    request.setAttribute("outNotice", outNotice);
 %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -39,7 +40,7 @@
 </head>
 <body>
 <header>
-    <a href="<%= ctx %>/index.jsp">Cinema Management System</a>
+    <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
     <span>MovieStatisticsScreen8.jsp</span>
 </header>
 
@@ -48,21 +49,24 @@
 <main>
     <section>
         <h1>Thống kê phim</h1>
-        <form method="get" action="<%= ctx %>/view/managementstaff/MovieStatisticsScreen8.jsp">
+        <fmt:formatDate value="${inStartDate}" pattern="yyyy-MM-dd" var="startIso"/>
+        <fmt:formatDate value="${inEndDate}" pattern="yyyy-MM-dd" var="endIso"/>
+
+        <form method="get" action="${pageContext.request.contextPath}/view/managementstaff/MovieStatisticsScreen8.jsp">
             <label for="inStartDate">Kì thống kê:</label>
             <input type="date" id="inStartDate" name="inStartDate"
-                   value="<%= startIso %>">
+                   value="${startIso}">
             <span>đến</span>
             <input type="date" id="inEndDate" name="inEndDate"
-                   value="<%= endIso %>">
+                   value="${endIso}">
             <button type="submit" name="subFilter" value="1">Lọc</button>
         </form>
 
-        <% if (outNotice != null) { %>
-        <div><%= Html8.escape(outNotice) %></div>
-        <% } %>
+        <c:if test="${not empty outNotice}">
+        <div><c:out value="${outNotice}"/></div>
+        </c:if>
 
-        <% if (listMovieStatistics.length > 0) { %>
+        <c:if test="${not empty listMovieStatistics}">
         <table id="outMovieTable">
             <thead>
             <tr>
@@ -74,40 +78,42 @@
             </tr>
             </thead>
             <tbody>
-            <%
-                long totalTickets = 0L;
-                float totalRevenue = 0f;
-                for (int i = 0; i < listMovieStatistics.length; i++) {
-                    MovieStatistics8 selectedMovie = listMovieStatistics[i];
-                    totalTickets += selectedMovie.getTicketsSold();
-                    totalRevenue += selectedMovie.getRevenue();
-                    String movieNameEnc = URLEncoder.encode(
-                            selectedMovie.getName() == null ? "" : selectedMovie.getName(), "UTF-8");
-            %>
-            <tr>
-                <td><%= i + 1 %></td>
-                <td><%= selectedMovie.getId() %></td>
-                <td>
-                    <a href="<%= ctx %>/view/managementstaff/MovieShowtimeStatisticsScreen8.jsp?idMovie=<%= selectedMovie.getId() %>&amp;movieName=<%= movieNameEnc %>&amp;startDate=<%= startIso %>&amp;endDate=<%= endIso %>">
-                        <%= Html8.escape(selectedMovie.getName()) %>
-                    </a>
-                </td>
-                <td><%= selectedMovie.getTicketsSold() %></td>
-                <td><%= Money8.format(selectedMovie.getRevenue()) %></td>
-            </tr>
-            <% } %>
+            <c:set var="totalTickets" value="${0}"/>
+            <c:set var="totalRevenue" value="${0}"/>
+            <c:forEach items="${listMovieStatistics}" var="selectedMovie" varStatus="status">
+                <c:set var="totalTickets" value="${totalTickets + selectedMovie.ticketsSold}"/>
+                <c:set var="totalRevenue" value="${totalRevenue + selectedMovie.revenue}"/>
+                <c:url var="showtimeStatisticsUrl"
+                       value="/view/managementstaff/MovieShowtimeStatisticsScreen8.jsp">
+                    <c:param name="idMovie" value="${selectedMovie.id}"/>
+                    <c:param name="movieName" value="${selectedMovie.name}"/>
+                    <c:param name="startDate" value="${startIso}"/>
+                    <c:param name="endDate" value="${endIso}"/>
+                </c:url>
+                <tr>
+                    <td>${status.count}</td>
+                    <td>${selectedMovie.id}</td>
+                    <td>
+                        <a id="subSelectMovie" href="${fn:escapeXml(showtimeStatisticsUrl)}">
+                            <c:out value="${selectedMovie.name}"/>
+                        </a>
+                    </td>
+                    <td>${selectedMovie.ticketsSold}</td>
+                    <td><fmt:formatNumber value="${selectedMovie.revenue}" pattern="#,##0"/></td>
+                </tr>
+            </c:forEach>
             <tr>
                 <td>—</td>
                 <td>—</td>
                 <td>Tổng cả kì</td>
-                <td><%= totalTickets %></td>
-                <td><%= Money8.format(totalRevenue) %></td>
+                <td>${totalTickets}</td>
+                <td><fmt:formatNumber value="${totalRevenue}" pattern="#,##0"/></td>
             </tr>
             </tbody>
         </table>
-        <% } %>
+        </c:if>
 
-        <form method="post" action="<%= ctx %>/view/managementstaff/StatisticsTypeScreen8.jsp">
+        <form method="post" action="${pageContext.request.contextPath}/view/managementstaff/StatisticsTypeScreen8.jsp">
             <button type="submit" name="subBack" value="1">Quay lại</button>
         </form>
     </section>

@@ -1,8 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%
-    String ctx = request.getContextPath();
-    boolean registered = request.getParameter("registered") != null;
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -12,8 +9,8 @@
 </head>
 <body>
 <header>
-    <a href="<%= ctx %>/index.jsp">Cinema Management System</a>
-    <span>CustomerMainScreen8.jsp</span>
+    <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
+    <span>CustomerHomeScreen8.jsp</span>
 </header>
 
 <hr>
@@ -21,21 +18,25 @@
 <main>
     <section>
         <h1>Trang chủ khách hàng</h1>
-        <% if (registered) { %>
+        <c:if test="${not empty param.registered}">
         <div>Đăng ký thành công. Bạn đã có thể sử dụng các chức năng của khách hàng.</div>
-        <% } %>
-        <p>Chức năng:</p>
+        </c:if>
+        <c:if test="${not empty sessionScope.member}">
+        <c:set var="signedInName" value="${sessionScope.member.fullName.fullName}"/>
+        <c:if test="${empty signedInName}">
+            <c:set var="signedInName" value="${sessionScope.member.username}"/>
+        </c:if>
+        <p>Xin chào: <strong><c:out value="${signedInName}"/></strong></p>
+        </c:if>
         <div>
             <div><button type="button" disabled>Tìm kiếm phim</button></div>
             <div><button type="button" disabled>Mua vé online</button></div>
             <div><button type="button" disabled>Mua vé tại quầy</button></div>
         </div>
         <p>
-            Giao diện này thuộc module khách hàng. Ba chức năng trên nằm ngoài
-            hai module được thiết kế chi tiết trong báo cáo nên chỉ hiển thị để
-            chỉ đích đến sau khi đăng ký thành công.
+            <a href="${pageContext.request.contextPath}/view/member/doLogout8.jsp">Đăng xuất</a>
+            <a href="${pageContext.request.contextPath}/index.jsp">Trang chủ</a>
         </p>
-        <p><a href="<%= ctx %>/index.jsp">Về trang chủ</a></p>
     </section>
 </main>
 </body>

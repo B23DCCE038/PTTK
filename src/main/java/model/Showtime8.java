@@ -11,7 +11,6 @@ public class Showtime8 {
     private Movie8 movie;
     private ScreeningRoom8 room;
     private Ticket8[] tickets;
-    private Booking8[] bookings;
 
     public int getId() {
         return id;
@@ -67,13 +66,5 @@ public class Showtime8 {
 
     public void setTickets(Ticket8[] tickets) {
         this.tickets = tickets;
-    }
-
-    public Booking8[] getBookings() {
-        return bookings;
-    }
-
-    public void setBookings(Booking8[] bookings) {
-        this.bookings = bookings;
     }
 }

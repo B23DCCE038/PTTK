@@ -6,7 +6,6 @@ public class Ticket8 {
     private String purchasePlace;
     private String seat;
     private Showtime8 showtime;
-    private Booking8 booking;
     private Customer8 customer;
     private Seller8 seller;
 
@@ -48,14 +47,6 @@ public class Ticket8 {
 
     public void setShowtime(Showtime8 showtime) {
         this.showtime = showtime;
-    }
-
-    public Booking8 getBooking() {
-        return booking;
-    }
-
-    public void setBooking(Booking8 booking) {
-        this.booking = booking;
     }
 
     public Customer8 getCustomer() {

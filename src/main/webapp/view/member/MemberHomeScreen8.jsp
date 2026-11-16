@@ -1,7 +1,4 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%
-    String ctx = request.getContextPath();
-%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -11,8 +8,8 @@
 </head>
 <body>
 <header>
-    <a href="<%= ctx %>/index.jsp">Cinema Management System</a>
-    <span>GuestMainScreen8.jsp</span>
+    <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
+    <span>MemberHomeScreen8.jsp</span>
 </header>
 
 <hr>
@@ -20,14 +17,13 @@
 <main>
     <section>
         <h1>Trang chủ khách</h1>
-        <p>Chức năng:</p>
-        <form method="post" action="<%= ctx %>/view/guest/MemberRegistrationScreen8.jsp">
-            <button type="submit" name="subSelectRegistration" value="1">
+        <form method="post" action="${pageContext.request.contextPath}/view/member/MemberRegistrationScreen8.jsp">
+            <button type="submit" name="subSelectRegistration">
                 Đăng ký thành viên
             </button>
         </form>
         <p>
-            Khách chưa có tài khoản nên chỉ có chức năng đăng ký thành viên.
+            <a href="${pageContext.request.contextPath}/view/member/LoginScreen8.jsp">Đăng nhập</a>
         </p>
     </section>
 </main>

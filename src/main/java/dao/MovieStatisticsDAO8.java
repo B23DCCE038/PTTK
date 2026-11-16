@@ -1,6 +1,5 @@
 package dao;
 
-import model.Movie8;
 import model.MovieStatistics8;
 
 import java.sql.PreparedStatement;
@@ -38,21 +37,20 @@ public class MovieStatisticsDAO8 extends DAO8 {
 
             List<MovieStatistics8> result = new ArrayList<>();
             try (PreparedStatement ps = getCon().prepareStatement(sql)) {
-                ps.setDate(1, startOrMin(startDate));
-                ps.setDate(2, endOrMax(endDate));
+                ps.setDate(1, toSqlDate(startDate));
+                ps.setDate(2, toSqlDate(endDate));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        Movie8 movie = new Movie8();
+                        MovieStatistics8 movie = new MovieStatistics8();
                         movie.setId(rs.getInt("id"));
                         movie.setName(rs.getString("name"));
                         movie.setDescription(rs.getString("description"));
                         movie.setCoverImage(rs.getString("coverImage"));
                         movie.setLength(rs.getInt("length"));
                         movie.setPrice(rs.getFloat("price"));
-                        result.add(new MovieStatistics8(
-                                movie,
-                                rs.getInt("ticketsSold"),
-                                rs.getFloat("revenue")));
+                        movie.setTicketsSold(rs.getInt("ticketsSold"));
+                        movie.setRevenue(rs.getFloat("revenue"));
+                        result.add(movie);
                     }
                 }
             } catch (SQLException ex) {

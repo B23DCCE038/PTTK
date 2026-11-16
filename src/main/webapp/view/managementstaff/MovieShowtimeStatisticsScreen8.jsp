@@ -2,14 +2,13 @@
 <%@ page import="model.Movie8" %>
 <%@ page import="model.ShowtimeStatistics8" %>
 <%@ page import="dao.ShowtimeStatisticsDAO8" %>
-<%@ page import="util.DateUtil8" %>
-<%@ page import="util.Html8" %>
-<%@ page import="util.Money8" %>
 <%@ page import="java.util.Date" %>
-<%@ page import="java.net.URLEncoder" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ include file="/WEB-INF/jspf/_requireManagement8.jspf" %>
+<%@ include file="/WEB-INF/jspf/common8.jspf" %>
 <%
-    String ctx = request.getContextPath();
-
     int idMovie = 0;
     try {
         idMovie = Integer.parseInt(request.getParameter("idMovie"));
@@ -22,10 +21,10 @@
         movieName = "";
     }
 
-    Date startDate = DateUtil8.parseIso(request.getParameter("startDate"),
-            DateUtil8.parseIso("2026-01-01", new Date()));
-    Date endDate = DateUtil8.parseIso(request.getParameter("endDate"),
-            DateUtil8.parseIso("2026-03-31", new Date()));
+    Date startDate = parseIso8(request.getParameter("startDate"),
+            parseIso8("2026-01-01", new Date()));
+    Date endDate = parseIso8(request.getParameter("endDate"),
+            parseIso8("2026-03-31", new Date()));
 
     Movie8 movie = new Movie8();
     movie.setId(idMovie);
@@ -47,9 +46,11 @@
         outNotice = "Không có suất chiếu trong kì.";
     }
 
-    String startIso = DateUtil8.toIso(startDate);
-    String endIso = DateUtil8.toIso(endDate);
-    String movieNameEnc = URLEncoder.encode(movieName, "UTF-8");
+    request.setAttribute("movie", movie);
+    request.setAttribute("startDate", startDate);
+    request.setAttribute("endDate", endDate);
+    request.setAttribute("listShowtimeStatistics", listShowtimeStatistics);
+    request.setAttribute("outNotice", outNotice);
 %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -60,7 +61,7 @@
 </head>
 <body>
 <header>
-    <a href="<%= ctx %>/index.jsp">Cinema Management System</a>
+    <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
     <span>MovieShowtimeStatisticsScreen8.jsp</span>
 </header>
 
@@ -69,13 +70,15 @@
 <main>
     <section>
         <h1>Thống kê suất chiếu của phim</h1>
-        <p>Phim: <strong><%= Html8.escape(movieName) %></strong></p>
+        <p>Phim: <strong><c:out value="${movie.name}"/></strong></p>
+        <fmt:formatDate value="${startDate}" pattern="yyyy-MM-dd" var="startIso"/>
+        <fmt:formatDate value="${endDate}" pattern="yyyy-MM-dd" var="endIso"/>
 
-        <% if (outNotice != null) { %>
-        <div><%= Html8.escape(outNotice) %></div>
-        <% } %>
+        <c:if test="${not empty outNotice}">
+        <div><c:out value="${outNotice}"/></div>
+        </c:if>
 
-        <% if (listShowtimeStatistics.length > 0) { %>
+        <c:if test="${not empty listShowtimeStatistics}">
         <table id="outShowtimeTable">
             <thead>
             <tr>
@@ -88,34 +91,41 @@
             </tr>
             </thead>
             <tbody>
-            <%
-                for (int i = 0; i < listShowtimeStatistics.length; i++) {
-                    ShowtimeStatistics8 selectedShowtime = listShowtimeStatistics[i];
-                    String rowDateIso = DateUtil8.toIso(selectedShowtime.getDate());
-                    String rowTime = DateUtil8.formatTime(selectedShowtime.getStartTime());
-                    String rowTimeEnc = URLEncoder.encode(rowTime, "UTF-8");
-                    int roomId = selectedShowtime.getRoom() == null ? 0 : selectedShowtime.getRoom().getId();
-            %>
-            <tr>
-                <td><%= i + 1 %></td>
-                <td><%= DateUtil8.formatDmy(selectedShowtime.getDate()) %></td>
-                <td>
-                    <a href="<%= ctx %>/view/managementstaff/ShowtimeTicketSalesScreen8.jsp?idShowtime=<%= selectedShowtime.getId() %>&amp;showtimeDate=<%= rowDateIso %>&amp;showtimeTime=<%= rowTimeEnc %>&amp;roomId=<%= roomId %>&amp;idMovie=<%= idMovie %>&amp;movieName=<%= movieNameEnc %>&amp;startDate=<%= startIso %>&amp;endDate=<%= endIso %>">
-                        <%= Html8.escape(rowTime) %>
-                    </a>
-                </td>
-                <td>P.<%= roomId %></td>
-                <td><%= selectedShowtime.getTicketsSold() %></td>
-                <td><%= Money8.format(selectedShowtime.getRevenue()) %></td>
-            </tr>
-            <% } %>
+            <c:forEach items="${listShowtimeStatistics}" var="selectedShowtime" varStatus="status">
+                <fmt:formatDate value="${selectedShowtime.date}" pattern="yyyy-MM-dd" var="rowDateIso"/>
+                <fmt:formatDate value="${selectedShowtime.startTime}" pattern="HH:mm" var="rowTime"/>
+                <c:set var="roomId" value="${empty selectedShowtime.room ? 0 : selectedShowtime.room.id}"/>
+                <c:url var="ticketSalesUrl"
+                       value="/view/managementstaff/ShowtimeTicketSalesScreen8.jsp">
+                    <c:param name="idShowtime" value="${selectedShowtime.id}"/>
+                    <c:param name="showtimeDate" value="${rowDateIso}"/>
+                    <c:param name="showtimeTime" value="${rowTime}"/>
+                    <c:param name="roomId" value="${roomId}"/>
+                    <c:param name="idMovie" value="${movie.id}"/>
+                    <c:param name="movieName" value="${movie.name}"/>
+                    <c:param name="startDate" value="${startIso}"/>
+                    <c:param name="endDate" value="${endIso}"/>
+                </c:url>
+                <tr>
+                    <td>${status.count}</td>
+                    <td><fmt:formatDate value="${selectedShowtime.date}" pattern="dd/MM/yyyy"/></td>
+                    <td>
+                        <a id="subSelectShowtime" href="${fn:escapeXml(ticketSalesUrl)}">
+                            <c:out value="${rowTime}"/>
+                        </a>
+                    </td>
+                    <td>P.${roomId}</td>
+                    <td>${selectedShowtime.ticketsSold}</td>
+                    <td><fmt:formatNumber value="${selectedShowtime.revenue}" pattern="#,##0"/></td>
+                </tr>
+            </c:forEach>
             </tbody>
         </table>
-        <% } %>
+        </c:if>
 
-        <form method="post" action="<%= ctx %>/view/managementstaff/MovieStatisticsScreen8.jsp">
-            <input type="hidden" name="inStartDate" value="<%= startIso %>">
-            <input type="hidden" name="inEndDate" value="<%= endIso %>">
+        <form method="post" action="${pageContext.request.contextPath}/view/managementstaff/MovieStatisticsScreen8.jsp">
+            <input type="hidden" name="inStartDate" value="${startIso}">
+            <input type="hidden" name="inEndDate" value="${endIso}">
             <button type="submit" name="subBack" value="1">Quay lại</button>
         </form>
     </section>
