@@ -13,7 +13,7 @@
 
     String inUsername = request.getParameter("inUsername");
     String inPassword = request.getParameter("inPassword");
-    String username = inUsername == null ? "" : inUsername.trim();
+    String username = inUsername == null ? "" : inUsername;
     String password = inPassword == null ? "" : inPassword;
 
     Member8 member = null;

@@ -9,7 +9,6 @@
 <body>
 <header>
     <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
-    <span>MemberHomeScreen8.jsp</span>
 </header>
 
 <hr>

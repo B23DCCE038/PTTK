@@ -63,7 +63,6 @@
 <body>
 <header>
     <a href="${pageContext.request.contextPath}/index.jsp">Cinema Management System</a>
-    <span>MemberRegistrationScreen8.jsp</span>
 </header>
 
 <hr>
